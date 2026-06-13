@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Güvenli Lojistik Messenger — Live</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#f8f8f6; --surface:#fff; --surface2:#f1efe8;
+      --border:rgba(0,0,0,0.11); --text:#2c2c2a; --muted:#888780;
+      --blue:#185FA5; --green:#0F6E56; --purple:#534AB7;
+      --amber:#BA7517; --red:#A32D2D; --r:10px;
+      --mono:"Courier New",monospace;
+    }
+    @media(prefers-color-scheme:dark){
+      :root{--bg:#1a1a18;--surface:#242422;--surface2:#2c2c2a;
+            --border:rgba(255,255,255,0.10);--text:#e8e6df;}
+    }
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+         background:var(--bg);color:var(--text);min-height:100vh;
+         display:flex;flex-direction:column;align-items:center;padding:1.5rem 1rem;}
+    .wrap{width:100%;max-width:780px;display:flex;flex-direction:column;gap:12px;}
+    .card{background:var(--surface);border:.5px solid var(--border);
+          border-radius:var(--r);padding:1.1rem 1.4rem;}
+    h1{font-size:17px;font-weight:500;margin-bottom:1rem;display:flex;
+       align-items:center;gap:8px;}
+    .controls{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:9px;}
+    .ctrl{display:flex;flex-direction:column;gap:3px;}
+    .ctrl label{font-size:11px;color:var(--muted);}
+    select,input[type=text]{width:100%;padding:6px 9px;border:.5px solid var(--border);
+      border-radius:7px;background:var(--surface2);color:var(--text);
+      font-size:13px;outline:none;}
+    select:focus,input:focus{border-color:var(--blue);
+      box-shadow:0 0 0 2px rgba(24,95,165,.15);}
+    .msg-row{display:flex;gap:8px;margin-top:10px;}
+    .msg-row input{flex:1;}
+    button{padding:6px 16px;border:.5px solid var(--border);border-radius:7px;
+      background:var(--surface);color:var(--text);font-size:13px;font-weight:500;
+      cursor:pointer;white-space:nowrap;transition:background .12s;}
+    button:hover{background:var(--surface2);}
+    button:active{transform:scale(.98);}
+    button:disabled{opacity:.38;cursor:not-allowed;}
+    button.primary{background:var(--blue);color:#fff;border-color:var(--blue);}
+    button.primary:hover{background:#0C447C;}
+    svg#net{display:block;width:100%;border:.5px solid var(--border);
+      border-radius:var(--r);background:var(--surface2);}
+    .log-panel{background:var(--surface2);border:.5px solid var(--border);
+      border-radius:var(--r);padding:9px 12px;height:190px;overflow-y:auto;
+      font-family:var(--mono);font-size:11.5px;}
+    .le{padding:2px 0;border-bottom:.5px solid var(--border);color:var(--muted);}
+    .le.enc{color:var(--blue);}
+    .le.transit{color:var(--green);}
+    .le.dec{color:var(--purple);}
+    .le.ok{color:var(--green);font-weight:600;}
+    .le.err{color:var(--red);}
+    .le.info{color:var(--text);}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
+    .stat{background:var(--surface2);border:.5px solid var(--border);
+      border-radius:var(--r);padding:9px 13px;}
+    .stat .lbl{font-size:11px;color:var(--muted);margin-bottom:3px;}
+    .stat .val{font-size:15px;font-weight:500;}
+    .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;}
+    .dot.connected{background:var(--green);}
+    .dot.disconnected{background:var(--red);}
+    #connStatus{font-size:12px;color:var(--muted);display:flex;align-items:center;}
+    @media(max-width:580px){
+      .controls{grid-template-columns:1fr 1fr;}
+      .stats{grid-template-columns:1fr 1fr;}
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>
+      <i class="ti ti-shield-lock" aria-hidden="true"></i>
+      Güvenli Lojistik Messenger
+      <span style="margin-left:auto;" id="connStatus">
+        <span class="dot disconnected" id="dot"></span> Bağlanıyor...
+      </span>
+    </h1>
+
+    <div class="controls">
+      <div class="ctrl"><label>From</label>
+        <select id="src">
+          <option>Istanbul</option><option>Ankara</option><option>Izmir</option>
+          <option>Bursa</option><option>Antalya</option><option>Mersin</option><option>Konya</option>
+        </select>
+      </div>
+      <div class="ctrl"><label>To</label>
+        <select id="dst">
+          <option>Antalya</option><option>Istanbul</option><option>Ankara</option>
+          <option>Izmir</option><option>Bursa</option><option>Mersin</option><option>Konya</option>
+        </select>
+      </div>
+      <div class="ctrl"><label>Route method</label>
+        <select id="method">
+          <option value="dijkstra">Dijkstra (shortest km)</option>
+          <option value="bfs">BFS (fewest hops)</option>
+        </select>
+      </div>
+      <div class="ctrl"><label>Priority</label>
+        <select id="priority">
+          <option value="1">Low</option><option value="2" selected>Normal</option>
+          <option value="3">High</option><option value="4">Critical</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="msg-row">
+      <input type="text" id="msgInput" placeholder="Type a message..."
+             value="Hello world." />
+      <button class="primary" id="sendBtn" onclick="sendPacket()">
+        Send <i class="ti ti-send" aria-hidden="true"></i>
+      </button>
+      <button onclick="clearLog()">Clear</button>
+    </div>
+  </div>
+
+  <svg id="net" viewBox="0 0 660 310"></svg>
+
+  <div class="log-panel" id="log"></div>
+
+  <div class="stats">
+    <div class="stat"><div class="lbl">Packets sent</div><div class="val" id="stPkts">0</div></div>
+    <div class="stat"><div class="lbl">Route</div>
+      <div class="val" id="stRoute" style="font-size:10px;padding-top:3px;">—</div></div>
+    <div class="stat"><div class="lbl">Total km</div><div class="val" id="stKm">—</div></div>
+    <div class="stat"><div class="lbl">Integrity</div><div class="val" id="stInteg">—</div></div>
+  </div>
+
+  <div class="card">
+    <h1 style="margin-bottom:.8rem;">
+      <i class="ti ti-route" aria-hidden="true"></i> Hamilton &amp; TSP
+    </h1>
+    <div style="display:flex;gap:9px;align-items:flex-end;flex-wrap:wrap;">
+      <div class="ctrl" style="min-width:140px;">
+        <label>Başlangıç şehri</label>
+        <select id="hamStart">
+          <option value="">Otomatik</option>
+          <option>Istanbul</option><option>Ankara</option><option>Izmir</option>
+          <option>Bursa</option><option>Antalya</option><option>Mersin</option><option>Konya</option>
+        </select>
+      </div>
+      <button class="primary" id="hamYolBtn" onclick="sendHamilton('yol')">Hamilton Yol</button>
+      <button id="hamDonguBtn" onclick="sendHamilton('dongu')"
+        style="background:#534AB7;color:#fff;border-color:#534AB7;">Hamilton Döngü</button>
+      <button id="tspBtn" onclick="sendTSP()"
+        style="background:#BA7517;color:#fff;border-color:#BA7517;">TSP Turu</button>
+      <span id="hamStatus" style="font-size:12px;color:var(--muted);margin-left:4px;"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+const CITIES = {
+  Istanbul:{ x:95,  y:60,  role:"hub",   a:7,  b:3  },
+  Bursa:   { x:145, y:125, role:"depot", a:17, b:5  },
+  Izmir:   { x:95,  y:195, role:"port",  a:13, b:11 },
+  Ankara:  { x:335, y:75,  role:"hub",   a:11, b:7  },
+  Konya:   { x:345, y:190, role:"relay", a:21, b:17 },
+  Antalya: { x:270, y:265, role:"resort",a:18, b:9  },
+  Mersin:  { x:430, y:255, role:"port",  a:23, b:13 },
+};
+const EDGES=[
+  ["Istanbul","Ankara",450],["Istanbul","Bursa",150],["Istanbul","Izmir",480],
+  ["Ankara","Izmir",590],["Ankara","Antalya",550],["Ankara","Konya",260],
+  ["Izmir","Antalya",310],["Antalya","Mersin",190],["Mersin","Konya",270],
+  ["Bursa","Ankara",400],
+];
+
+const svg = document.getElementById("net");
+let pkts=0, busy=false, currentRoute=[], currentStates={};
+const SERVER = "http://localhost:5050";
+
+/* ── SSE bağlantısı ───────────────────────────────────── */
+function connectSSE(){
+  const es = new EventSource(SERVER+"/events");
+  es.onopen = ()=>{ setConn(true); };
+  es.onerror= ()=>{ setConn(false); setTimeout(connectSSE,3000); es.close(); };
+  es.onmessage = e => {
+    try {
+      const ev = JSON.parse(e.data);
+      handleEvent(ev);
+    } catch(err){
+      console.error("SSE parse/handle error:", err, e.data);
+    }
+  };
+}
+
+function setConn(ok){
+  document.getElementById("dot").className = "dot "+(ok?"connected":"disconnected");
+  document.getElementById("connStatus").lastChild.textContent =
+    " "+(ok?"Python sunucuya bağlı":"Bağlantı yok — servidor.py çalışıyor mu?");
+}
+
+/* ── Olay işleyici ────────────────────────────────────── */
+function handleEvent(ev){
+  const t=ev.type;
+  if(t==="start"){
+    pkts++;
+    document.getElementById("stPkts").textContent=pkts;
+    document.getElementById("stInteg").textContent="—";
+    document.getElementById("stInteg").style.color="";
+    log(`PKT-${String(pkts).padStart(4,"0")}  ${ev.kaynak} → ${ev.hedef}  [${ev.yontem.toUpperCase()}]`,"info");
+    log(`Message: "${ev.mesaj.slice(0,60)}"`, "info");
+    currentRoute=[]; currentStates={};
+    drawNet([],{});
+  }
+  else if(t==="encrypt"){
+    currentRoute = edgePairs(ev.yol);
+    currentStates = stateMap(ev.yol, ev.dugum, ev.yol[0], ev.yol[ev.yol.length-1]);
+    document.getElementById("stRoute").textContent = ev.yol.join(" → ");
+    if(ev.km) document.getElementById("stKm").textContent = ev.km + " km";
+    drawNet(currentRoute, currentStates);
+    log(`[${ev.dugum}] Encrypting  a=${ev.a}, b=${ev.b}`,"enc");
+    log(`[${ev.dugum}] Plaintext : "${ev.sifresiz.slice(0,55)}"`,"enc");
+    log(`[${ev.dugum}] Ciphertext: "${ev.sifreli.slice(0,55)}"`,"enc");
+    log(`[${ev.dugum}] Checksum  : ${ev.checksum}`,"enc");
+  }
+  else if(t==="transit"){
+    const ns={...currentStates};
+    Object.keys(ns).forEach(k=>{ if(ns[k]==="transit") ns[k]="active"; });
+    ns[ev.dugum]="transit";
+    drawNet(currentRoute, ns);
+    const km=EDGES.find(([a,b])=>{
+      const i=ev.yol.indexOf(ev.dugum);
+      return i>0 && ((a===ev.yol[i-1]&&b===ev.dugum)||(b===ev.yol[i-1]&&a===ev.dugum));
+    })?.[2]||"?";
+    log(`[${ev.dugum}] Transit — forwarding encrypted payload (${km} km)`,"transit");
+  }
+  else if(t==="deliver"){
+    const ns={...currentStates};
+    Object.keys(ns).forEach(k=>{ if(ns[k]==="transit") ns[k]="active"; });
+    drawNet(currentRoute, ns);
+    log(`[${ev.dugum}] Decrypted : "${ev.cozulmus.slice(0,55)}"`,"dec");
+    log(`[${ev.dugum}] Integrity : ${ev.butun?"PASS — message intact ✓":"FAIL — corrupted! ✗"}`, ev.butun?"ok":"err");
+    const si=document.getElementById("stInteg");
+    si.textContent=ev.butun?"PASS ✓":"FAIL ✗";
+    si.style.color=ev.butun?"var(--green)":"var(--red)";
+  }
+  else if(t==="done"){
+    setTimeout(()=>{ drawNet([],{}); },1200);
+    busy=false;
+    document.getElementById("sendBtn").disabled=false;
+    log("Teslimat tamamlandi. Yeni mesaj gonderebilirsiniz.","ok");
+  }
+  else if(t==="error"){
+    log(ev.msg,"err"); busy=false;
+    document.getElementById("sendBtn").disabled=false;
+  }
+  else if(t==="hamilton_start"){
+    ["hamYolBtn","hamDonguBtn","tspBtn"].forEach(id=>document.getElementById(id).disabled=true);
+    document.getElementById("hamStatus").textContent="Hesaplanıyor...";
+    drawNet([],{}); log("Hamilton "+(ev.mod==="dongu"?"Döngüsü":"Yolu")+" aranıyor...","info");
+  }
+  else if(t==="hamilton_step"){
+    const sofar=ev.yol.slice(0,ev.adim+1);
+    const pairs=[]; for(let i=0;i<sofar.length-1;i++) pairs.push([sofar[i],sofar[i+1]]);
+    const states={}; sofar.forEach(c=>states[c]="active");
+    states[sofar[0]]="src"; states[ev.dugum]="transit";
+    drawNet(pairs,states);
+    log(`[Adım ${ev.adim+1}/${ev.toplam}] ${ev.dugum}`,"transit");
+  }
+  else if(t==="hamilton_done"){
+    const pairs=[]; for(let i=0;i<ev.yol.length-1;i++) pairs.push([ev.yol[i],ev.yol[i+1]]);
+    const states={}; ev.yol.forEach(c=>states[c]="active");
+    states[ev.yol[0]]="src"; states[ev.yol[ev.yol.length-1]]="dst";
+    drawNet(pairs,states);
+    log("Hamilton "+(ev.mod==="dongu"?"Döngüsü":"Yolu")+": "+ev.yol.join(" → "),"ok");
+    document.getElementById("hamStatus").textContent="✓ Bulundu";
+    document.getElementById("hamStatus").style.color="var(--green)";
+    ["hamYolBtn","hamDonguBtn","tspBtn"].forEach(id=>document.getElementById(id).disabled=false);
+  }
+  else if(t==="hamilton_error"){
+    log(ev.msg,"err");
+    document.getElementById("hamStatus").textContent="✗ Bulunamadı";
+    document.getElementById("hamStatus").style.color="var(--red)";
+    ["hamYolBtn","hamDonguBtn","tspBtn"].forEach(id=>document.getElementById(id).disabled=false);
+  }
+  else if(t==="tsp_start"){
+    ["hamYolBtn","hamDonguBtn","tspBtn"].forEach(id=>document.getElementById(id).disabled=true);
+    document.getElementById("hamStatus").textContent="TSP hesaplanıyor...";
+    drawNet([],{}); log("TSP turu aranıyor...","info");
+  }
+  else if(t==="tsp_step"){
+    const sofar=ev.yol.slice(0,ev.adim+1);
+    const pairs=[]; for(let i=0;i<sofar.length-1;i++) pairs.push([sofar[i],sofar[i+1]]);
+    const states={}; sofar.forEach(c=>states[c]="active");
+    states[sofar[0]]="src"; states[ev.dugum]="transit";
+    drawNet(pairs,states);
+    log(`[TSP Adım ${ev.adim+1}/${ev.toplam}] ${ev.dugum}`,"transit");
+  }
+  else if(t==="tsp_done"){
+    const pairs=[]; for(let i=0;i<ev.yol.length-1;i++) pairs.push([ev.yol[i],ev.yol[i+1]]);
+    const states={}; ev.yol.forEach(c=>states[c]="active"); states[ev.yol[0]]="src";
+    drawNet(pairs,states);
+    log("TSP Turu: "+ev.yol.join(" → ")+" | "+ev.km+" km","ok");
+    document.getElementById("hamStatus").textContent="✓ Tur: "+ev.km+" km";
+    document.getElementById("hamStatus").style.color="var(--green)";
+    ["hamYolBtn","hamDonguBtn","tspBtn"].forEach(id=>document.getElementById(id).disabled=false);
+  }
+  else if(t==="tsp_error"){
+    log(ev.msg,"err");
+    document.getElementById("hamStatus").textContent="✗ Tur tamamlanamadı";
+    document.getElementById("hamStatus").style.color="var(--red)";
+    ["hamYolBtn","hamDonguBtn","tspBtn"].forEach(id=>document.getElementById(id).disabled=false);
+  }
+}
+
+/* ── Gönder ───────────────────────────────────────────── */
+async function sendPacket(){
+  if(busy) return;
+  const src=document.getElementById("src").value;
+  const dst=document.getElementById("dst").value;
+  if(src===dst){ log("Source and destination must differ.","err"); return; }
+  const msg=document.getElementById("msgInput").value.trim();
+  if(!msg){ log("Message cannot be empty.","err"); return; }
+  busy=true;
+  document.getElementById("sendBtn").disabled=true;
+
+  // Guvenlik kilidi: 15 saniye sonra her durumda butonu ac
+  const safetyTimer = setTimeout(()=>{
+    busy=false;
+    document.getElementById("sendBtn").disabled=false;
+    log("Timeout — buton otomatik acildi.","err");
+  }, 15000);
+
+  try {
+    const resp = await fetch(SERVER+"/send",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        kaynak:src, hedef:dst, mesaj:msg,
+        yontem:document.getElementById("method").value,
+        oncelik:document.getElementById("priority").value,
+      })
+    });
+    // fetch basarili olduysa safety timer devrede kalir,
+    // done eventi gelince unlockSend() cagrilir
+  } catch(e){
+    clearTimeout(safetyTimer);
+    log("Sunucuya ulaşılamadı — servidor.py çalışıyor mu?","err");
+    busy=false; document.getElementById("sendBtn").disabled=false;
+  }
+}
+
+function unlockSend(timer){
+  if(timer) clearTimeout(timer);
+  busy=false;
+  document.getElementById("sendBtn").disabled=false;
+}
+
+
+/* ── Hamilton & TSP ───────────────────────────────────── */
+async function sendHamilton(mod){
+  ["hamYolBtn","hamDonguBtn","tspBtn"].forEach(id=>document.getElementById(id).disabled=true);
+  document.getElementById("hamStatus").textContent="";
+  const baslangic=document.getElementById("hamStart").value||null;
+  try{
+    await fetch(SERVER+"/hamilton",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({baslangic,mod})});
+  }catch(e){
+    log("Sunucuya ulaşılamadı","err");
+    ["hamYolBtn","hamDonguBtn","tspBtn"].forEach(id=>document.getElementById(id).disabled=false);
+  }
+}
+async function sendTSP(){
+  ["hamYolBtn","hamDonguBtn","tspBtn"].forEach(id=>document.getElementById(id).disabled=true);
+  document.getElementById("hamStatus").textContent="";
+  const baslangic=document.getElementById("hamStart").value||null;
+  try{
+    await fetch(SERVER+"/tsp",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({baslangic})});
+  }catch(e){
+    log("Sunucuya ulaşılamadı","err");
+    ["hamYolBtn","hamDonguBtn","tspBtn"].forEach(id=>document.getElementById(id).disabled=false);
+  }
+}
+/* ── Yardımcılar ──────────────────────────────────────── */
+function edgePairs(yol){ const r=[]; for(let i=0;i<yol.length-1;i++) r.push([yol[i],yol[i+1]]); return r; }
+function stateMap(yol, active, src, dst){
+  const m={};
+  yol.forEach(c=>m[c]="active");
+  m[src]="src"; m[dst]="dst"; if(active && active!==src && active!==dst) m[active]="transit";
+  return m;
+}
+
+function log(msg,cls){
+  const panel=document.getElementById("log");
+  const d=document.createElement("div"); d.className="le "+(cls||"");
+  const t=new Date().toLocaleTimeString("tr-TR");
+  d.textContent=`[${t}]  ${msg}`;
+  panel.appendChild(d); panel.scrollTop=panel.scrollHeight;
+}
+function clearLog(){ document.getElementById("log").innerHTML=""; }
+
+/* ── SVG çizim ────────────────────────────────────────── */
+function makeSVG(tag,attrs){
+  const el=document.createElementNS("http://www.w3.org/2000/svg",tag);
+  Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v));
+  return el;
+}
+function drawNet(hiEdges, nodeStates){
+  svg.innerHTML="";
+  const hi=new Set(hiEdges.map(([a,b])=>[a,b].sort().join("__")));
+  EDGES.forEach(([a,b,w])=>{
+    const ca=CITIES[a],cb=CITIES[b];
+    const isHi=hi.has([a,b].sort().join("__"));
+    svg.appendChild(makeSVG("line",{x1:ca.x,y1:ca.y,x2:cb.x,y2:cb.y,
+      stroke:isHi?"#185FA5":"#B4B2A9","stroke-width":isHi?2.8:1.3}));
+    const mx=(ca.x+cb.x)/2,my=(ca.y+cb.y)/2;
+    const t=makeSVG("text",{x:mx,y:my-5,"text-anchor":"middle","font-size":9,
+      fill:isHi?"#185FA5":"#888780","font-weight":isHi?500:400});
+    t.textContent=w+" km"; svg.appendChild(t);
+  });
+  Object.entries(CITIES).forEach(([name,c])=>{
+    const st=nodeStates[name]||"idle";
+    const col=st==="src"?"#1D9E75":st==="dst"?"#534AB7":
+               st==="transit"?"#BA7517":st==="active"?"#378ADD":"#B4B2A9";
+    if(st!=="idle"){ svg.appendChild(makeSVG("circle",{cx:c.x,cy:c.y,r:24,fill:col,opacity:.18})); }
+    svg.appendChild(makeSVG("circle",{cx:c.x,cy:c.y,r:19,fill:col}));
+    const l=makeSVG("text",{x:c.x,y:c.y+4,"text-anchor":"middle","font-size":9,"font-weight":500,fill:"white"});
+    l.textContent=name.length>7?name.slice(0,7):name; svg.appendChild(l);
+    const s=makeSVG("text",{x:c.x,y:c.y+31,"text-anchor":"middle","font-size":8,fill:"#888780"});
+    s.textContent=`a=${c.a}, b=${c.b}`; svg.appendChild(s);
+    const r=makeSVG("text",{x:c.x,y:c.y+41,"text-anchor":"middle","font-size":7.5,fill:"#888780","font-style":"italic"});
+    r.textContent=c.role; svg.appendChild(r);
+  });
+}
+
+document.getElementById("msgInput").addEventListener("keydown",e=>{ if(e.key==="Enter") sendPacket(); });
+drawNet([],{});
+connectSSE();
+</script>
+</body>
+</html>
