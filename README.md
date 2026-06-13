@@ -3,5 +3,6 @@ to make the code work let servidor.py to run
 
 project shoul look like this
 
+LLMs used for building frontend and optimizations
 
 work in progress
